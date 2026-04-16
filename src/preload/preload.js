@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('todoAPI', {
   previewQuickAddLine: (line) => ipcRenderer.invoke('quickAdd:preview', line),
   createQuickAddTask: (line) => ipcRenderer.invoke('quickAdd:create', line),
   closeQuickAddWindow: () => ipcRenderer.invoke('quickAdd:close'),
+  signalQuickAddReady: () => ipcRenderer.send('quickAdd:renderer-ready'),
   onAddTaskCommand: (handler) => {
     if (typeof handler !== 'function') {
       return () => {};

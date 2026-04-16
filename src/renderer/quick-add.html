@@ -11,29 +11,32 @@
     <link rel="stylesheet" href="./design-system.css" />
     <link rel="stylesheet" href="./quick-add.css" />
   </head>
-  <body class="quick-add-window">
-    <main class="quick-add-shell">
-      <section class="quick-add-panel app-modal" role="dialog" aria-modal="true" aria-labelledby="quickAddTitle">
-        <header class="quick-add-head">
-          <p class="eyebrow">Velvet Quick Add</p>
-          <h1 id="quickAddTitle">Create a task from one line</h1>
-          <p class="quick-add-hint">Examples: <code>Finish report tomorrow 5pm high</code> or <code>Call dentist Friday 14:30</code></p>
-        </header>
+  <body class="qa-root">
+    <main class="qa-card" role="dialog" aria-modal="true" aria-labelledby="qaTitle">
+      <header class="qa-header">
+        <p class="qa-eyebrow">Velvet Quick Add</p>
+        <h1 id="qaTitle">Create a task from one line</h1>
+        <p class="qa-helper">Examples: <code>Finish report tomorrow 5pm high</code> or <code>Call dentist Friday 14:30</code></p>
+      </header>
 
-        <input
-          id="quickAddInput"
-          class="app-input quick-add-input"
-          type="text"
-          maxlength="220"
-          placeholder="Type task details, press Enter to save..."
-          autocomplete="off"
-        />
+      <label class="qa-label" for="qaInput">Task line</label>
+      <input
+        id="qaInput"
+        class="app-input qa-input"
+        type="text"
+        maxlength="220"
+        placeholder="Type task details and press Enter"
+        autocomplete="off"
+      />
 
-        <div id="quickAddPreview" class="quick-add-preview" aria-live="polite"></div>
-        <footer class="quick-add-foot">
-          <p id="quickAddStatus" class="sidebar-note">Enter to save | Esc to close</p>
-        </footer>
+      <section class="qa-preview-region" aria-live="polite">
+        <div id="qaPreview" class="qa-preview"></div>
       </section>
+
+      <footer class="qa-footer">
+        <p id="qaStatus" class="qa-status">Enter to save | Esc to close</p>
+        <p class="qa-shortcuts"><kbd>Enter</kbd> Save <kbd>Esc</kbd> Close</p>
+      </footer>
     </main>
     <script src="./quick-add.js"></script>
   </body>

@@ -68,11 +68,11 @@ const SIDEBAR_WIDTH_OPTIONS = [
 ];
 
 const QUICK_ADD_SHORTCUT_OPTIONS = [
-  { id: 'Ctrl+Alt+V', label: 'Ctrl+Alt+V', caption: 'Default global shortcut' },
-  { id: 'Ctrl+Shift+Space', label: 'Ctrl+Shift+Space', caption: 'Alternative global shortcut' },
-  { id: 'Ctrl+Shift+K', label: 'Ctrl+Shift+K', caption: 'Keyboard-centric alternative' },
-  { id: 'Ctrl+K', label: 'Ctrl+K', caption: 'Legacy shortcut (more conflicts)' },
-  { id: 'Alt+Space', label: 'Alt+Space', caption: 'Command palette style' }
+  { id: 'Ctrl+Alt+V', label: 'Ctrl+Alt+V', caption: 'Recommended' },
+  { id: 'Ctrl+Shift+Space', label: 'Ctrl+Shift+Space', caption: 'Alternative' },
+  { id: 'Ctrl+Shift+K', label: 'Ctrl+Shift+K', caption: 'Keyboard alt' },
+  { id: 'Ctrl+K', label: 'Ctrl+K', caption: 'Legacy (conflicts)' },
+  { id: 'Alt+Space', label: 'Alt+Space', caption: 'Palette style' }
 ];
 
 const DEFAULT_SETTINGS = {
@@ -176,7 +176,6 @@ const state = {
     pulseCollapsed: true,
     composerCollapsed: false,
     filterPopoverOpen: false,
-    quickAddOpen: false,
     selectedTaskIds: new Set(),
     selectionAnchorId: '',
     dragTaskId: '',
@@ -193,8 +192,7 @@ const state = {
   filters: createDefaultFilters(),
   drafts: {
     task: createEmptyTaskDraft(),
-    category: createEmptyCategoryDraft(),
-    quickAddLine: ''
+    category: createEmptyCategoryDraft()
   }
 };
 
@@ -283,9 +281,6 @@ const elements = {
   storagePath: document.getElementById('storagePath'),
   openStorageButton: document.getElementById('openStorageButton'),
   restoreThemeDefaultsButton: document.getElementById('restoreThemeDefaultsButton'),
-  quickAddOverlay: document.getElementById('quickAddOverlay'),
-  quickAddInput: document.getElementById('quickAddInput'),
-  quickAddPreview: document.getElementById('quickAddPreview'),
   dialogRoot: document.getElementById('dialogRoot')
 };
 
@@ -337,10 +332,6 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
-}
-
-function escapeRegex(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function normalizeTags(rawTags) {
@@ -864,12 +855,6 @@ function closeCustomSelectMenu(selectId = '') {
     }
     menu.classList.remove('is-open');
     menu.setAttribute('aria-hidden', 'true');
-    menu.style.left = '';
-    menu.style.top = '';
-    menu.style.width = '';
-    menu.style.maxHeight = '';
-    menu.style.transformOrigin = '';
-    delete menu.dataset.placement;
   });
   state.ui.openSelectId = selectId || '';
 }
@@ -1132,18 +1117,24 @@ function refreshCustomSelects() {
   }
 }
 function renderChoiceButtons(container, options, selectedValue, key) {
+  const isAccent = key === 'accent';
+  const isQuickShortcut = key === 'quickAddShortcut';
+  container.classList.toggle('choice-grid--accent', isAccent);
+  container.classList.toggle('choice-grid--shortcut', isQuickShortcut);
   container.innerHTML = options
     .map(
       (option) => `
         <button
-          class="choice-button ${selectedValue === option.id ? 'active' : ''}"
+          class="choice-button ${isAccent ? 'choice-button--accent' : ''} ${isQuickShortcut ? 'choice-button--shortcut' : ''} ${selectedValue === option.id ? 'active' : ''}"
           type="button"
           data-setting-key="${escapeHtml(key)}"
           data-setting-value="${escapeHtml(option.id)}"
+          title="${escapeHtml(option.caption || option.label)}"
           ${key === 'accent' ? `data-accent-option="${escapeHtml(option.id)}"` : ''}
         >
+          ${isAccent ? '<span class="choice-accent-swatch" aria-hidden="true"></span>' : ''}
           <strong>${escapeHtml(option.label)}</strong>
-          <span class="choice-caption">${escapeHtml(option.caption)}</span>
+          ${isAccent ? '' : `<span class="choice-caption">${escapeHtml(option.caption)}</span>`}
         </button>
       `
     )
@@ -1682,63 +1673,9 @@ function renderSettingsView() {
   elements.trayMinimizeToggle.checked = Boolean(state.data.settings.trayOnMinimize);
   elements.storagePath.textContent = state.meta.userDataPath || 'Unknown';
   if (elements.quickAddShortcutStatus) {
-    const status = state.ui.shortcutStatus || {};
-    if (status.registered) {
-      elements.quickAddShortcutStatus.textContent = `Global shortcut active: ${status.active || state.data.settings.quickAddShortcut}`;
-      elements.quickAddShortcutStatus.classList.remove('status-error');
-      elements.quickAddShortcutStatus.classList.add('status-ok');
-    } else {
-      elements.quickAddShortcutStatus.textContent =
-        status.error || `Shortcut "${status.requested || state.data.settings.quickAddShortcut}" could not be registered.`;
-      elements.quickAddShortcutStatus.classList.remove('status-ok');
-      elements.quickAddShortcutStatus.classList.add('status-error');
-    }
-  }
-}
-
-function renderQuickAddPreview() {
-  if (!state.ui.quickAddOpen) {
-    return;
-  }
-
-  const parsed = parseQuickAddLine(state.drafts.quickAddLine);
-  if (!normalizeWhitespace(state.drafts.quickAddLine)) {
-    elements.quickAddPreview.innerHTML = '<span class="chip tag">Type a task and press Enter</span>';
-    return;
-  }
-
-  if (!parsed || !parsed.title) {
-    elements.quickAddPreview.innerHTML = '<span class="chip overdue">Could not parse title. Keep typing.</span>';
-    return;
-  }
-
-  const chips = [`<span class="chip status-normal">${escapeHtml(parsed.title)}</span>`];
-  if (parsed.dueDate) {
-    chips.push(`<span class="chip tag">Due ${escapeHtml(formatDate(parsed.dueDate))}${parsed.dueTime ? ` &bull; ${escapeHtml(formatTime(parsed.dueTime))}` : ''}</span>`);
-  }
-  chips.push(`<span class="chip priority-${escapeHtml(parsed.priority)}">${escapeHtml(PRIORITY_LABELS[parsed.priority])}</span>`);
-  if (parsed.categoryId) {
-    const category = getCategoryById(parsed.categoryId);
-    if (category) {
-      chips.push(
-        `<span class="chip category" style="background:${hexToRgba(category.color, 0.16)};border-color:${hexToRgba(category.color, 0.45)};">
-          <span class="category-dot" style="background:${escapeHtml(category.color)};"></span>${escapeHtml(category.name)}
-        </span>`
-      );
-    }
-  }
-  if (parsed.tags.length) {
-    chips.push(...parsed.tags.map((tag) => `<span class="chip tag">#${escapeHtml(tag)}</span>`));
-  }
-  elements.quickAddPreview.innerHTML = chips.join('');
-}
-
-function renderQuickAddOverlay() {
-  elements.quickAddOverlay.classList.toggle('hidden', !state.ui.quickAddOpen);
-  elements.quickAddOverlay.setAttribute('aria-hidden', String(!state.ui.quickAddOpen));
-  if (state.ui.quickAddOpen) {
-    elements.quickAddInput.value = state.drafts.quickAddLine;
-    renderQuickAddPreview();
+    elements.quickAddShortcutStatus.textContent = '';
+    elements.quickAddShortcutStatus.classList.remove('status-ok', 'status-error');
+    elements.quickAddShortcutStatus.classList.add('hidden');
   }
 }
 
@@ -1769,7 +1706,6 @@ function renderApp() {
 
   refreshCustomSelects();
   syncFloatingLayers();
-  renderQuickAddOverlay();
 }
 
 function ensureSettingValue(key, value) {
@@ -1956,8 +1892,20 @@ function clearSelection(render = true) {
   state.ui.selectedTaskIds.clear();
   state.ui.selectionAnchorId = '';
   if (render) {
-    renderApp();
+    renderSelectionState();
   }
+}
+
+function renderSelectionState() {
+  renderSidebar();
+  if (state.ui.currentView === 'categories' || state.ui.currentView === 'settings') {
+    return;
+  }
+  const cards = elements.taskList.querySelectorAll('.task-card[data-task-id]');
+  cards.forEach((card) => {
+    const taskId = card.dataset.taskId || '';
+    card.classList.toggle('is-selected', state.ui.selectedTaskIds.has(taskId));
+  });
 }
 
 function setSelection(taskId, mode = 'single') {
@@ -1973,7 +1921,7 @@ function setSelection(taskId, mode = 'single') {
       state.ui.selectedTaskIds.add(taskId);
     }
     state.ui.selectionAnchorId = taskId;
-    renderApp();
+    renderSelectionState();
     return;
   }
 
@@ -1984,14 +1932,14 @@ function setSelection(taskId, mode = 'single') {
     if (start >= 0 && end >= 0) {
       const [from, to] = start <= end ? [start, end] : [end, start];
       state.ui.selectedTaskIds = new Set(visibleIds.slice(from, to + 1));
-      renderApp();
+      renderSelectionState();
       return;
     }
   }
 
   state.ui.selectedTaskIds = new Set([taskId]);
   state.ui.selectionAnchorId = taskId;
-  renderApp();
+  renderSelectionState();
 }
 
 function isEditableTarget(target) {
@@ -2392,172 +2340,6 @@ async function restoreAppearanceDefaults() {
     return;
   }
   await updateSettings(APPEARANCE_DEFAULTS);
-}
-
-function closeQuickAddOverlay() {
-  if (!state.ui.quickAddOpen) {
-    return;
-  }
-  state.ui.quickAddOpen = false;
-  state.drafts.quickAddLine = '';
-  renderQuickAddOverlay();
-}
-
-function openQuickAddOverlay() {
-  state.ui.quickAddOpen = true;
-  state.drafts.quickAddLine = '';
-  renderQuickAddOverlay();
-  requestAnimationFrame(() => elements.quickAddInput.focus());
-}
-
-function parseDetectedDateToken(lineLower) {
-  const explicitDateMatch = lineLower.match(/\b(\d{4}-\d{2}-\d{2})\b/);
-  if (explicitDateMatch) {
-    return {
-      dueDate: explicitDateMatch[1],
-      token: explicitDateMatch[0]
-    };
-  }
-
-  if (lineLower.includes('tomorrow')) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return { dueDate: toDateKey(tomorrow), token: 'tomorrow' };
-  }
-
-  if (lineLower.includes('today')) {
-    return { dueDate: getTodayKey(), token: 'today' };
-  }
-
-  const weekdayEntries = Object.keys(WEEKDAY_INDEX).sort((left, right) => right.length - left.length);
-  for (const weekday of weekdayEntries) {
-    const regex = new RegExp(`\\b${weekday}\\b`, 'i');
-    if (!regex.test(lineLower)) {
-      continue;
-    }
-    const today = new Date();
-    const target = WEEKDAY_INDEX[weekday];
-    let diff = target - today.getDay();
-    if (diff < 0) diff += 7;
-    const detected = new Date(today);
-    detected.setDate(today.getDate() + diff);
-    return { dueDate: toDateKey(detected), token: weekday };
-  }
-
-  return { dueDate: '', token: '' };
-}
-
-function parseDetectedTimeToken(lineLower) {
-  const twentyFourHour = lineLower.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
-  if (twentyFourHour) {
-    return {
-      dueTime: `${pad2(twentyFourHour[1])}:${pad2(twentyFourHour[2])}`,
-      token: twentyFourHour[0]
-    };
-  }
-
-  const amPm = lineLower.match(/\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s?(am|pm)\b/i);
-  if (!amPm) {
-    return { dueTime: '', token: '' };
-  }
-  const rawHour = Number(amPm[1]);
-  const minute = Number(amPm[2] || '0');
-  const meridiem = amPm[3].toLowerCase();
-  const hour24 = meridiem === 'pm' ? (rawHour % 12) + 12 : rawHour % 12;
-  return {
-    dueTime: `${pad2(hour24)}:${pad2(minute)}`,
-    token: amPm[0]
-  };
-}
-
-function parseQuickAddLine(line) {
-  const raw = normalizeWhitespace(line);
-  if (!raw) {
-    return null;
-  }
-
-  const tags = [...raw.matchAll(/(^|\s)#([a-z0-9_-]{1,32})/gi)].map((entry) => entry[2]);
-  let workingTitle = ` ${raw} `;
-  tags.forEach((tag) => {
-    const tagRegex = new RegExp(`(^|\\s)#${escapeRegex(tag)}(?=\\s|$)`, 'i');
-    workingTitle = workingTitle.replace(tagRegex, ' ');
-  });
-
-  const lower = raw.toLowerCase();
-  const priorityMatches = [...lower.matchAll(/\b(urgent|high|medium|low)\b/g)];
-  const lastPriority = priorityMatches.at(-1)?.[1] || 'medium';
-  if (priorityMatches.length) {
-    workingTitle = workingTitle.replace(new RegExp(`\\b${lastPriority}\\b`, 'i'), ' ');
-  }
-
-  const { dueDate, token: dateToken } = parseDetectedDateToken(lower);
-  if (dateToken) {
-    workingTitle = workingTitle.replace(new RegExp(`\\b${escapeRegex(dateToken)}\\b`, 'i'), ' ');
-  }
-
-  const { dueTime, token: timeToken } = parseDetectedTimeToken(lower);
-  if (timeToken) {
-    workingTitle = workingTitle.replace(new RegExp(`\\b${escapeRegex(timeToken)}\\b`, 'i'), ' ');
-  }
-
-  let categoryId = '';
-  const sortedCategories = [...state.data.categories].sort((left, right) => right.name.length - left.name.length);
-  for (const category of sortedCategories) {
-    const escapedName = category.name
-      .trim()
-      .split(/\s+/)
-      .map((part) => escapeRegex(part))
-      .join('\\s+');
-    const regex = new RegExp(`\\b${escapedName}\\b`, 'i');
-    if (!regex.test(workingTitle)) {
-      continue;
-    }
-    categoryId = category.id;
-    workingTitle = workingTitle.replace(regex, ' ');
-    break;
-  }
-
-  const cleanedTitle = normalizeTaskTitle(workingTitle);
-  const finalTitle = cleanedTitle || normalizeTaskTitle(raw);
-  const finalDueDate = dueDate || (dueTime ? getTodayKey() : '');
-
-  return {
-    title: finalTitle,
-    dueDate: finalDueDate,
-    dueTime,
-    priority: PRIORITY_WEIGHT[lastPriority] ? lastPriority : 'medium',
-    status: 'normal',
-    categoryId,
-    tags: normalizeTags(tags),
-    notes: ''
-  };
-}
-
-async function submitQuickAdd() {
-  const parsed = parseQuickAddLine(state.drafts.quickAddLine);
-  if (!parsed || !parsed.title) {
-    await showNotice('Cannot create task', 'Type a task title in the Quick Add bar.');
-    return;
-  }
-
-  const payload = {
-    id: '',
-    title: parsed.title,
-    notes: '',
-    dueDate: parsed.dueDate,
-    dueTime: parsed.dueTime,
-    priority: parsed.priority,
-    status: parsed.status,
-    categoryId: parsed.categoryId,
-    reminderEnabled: false,
-    reminderAt: '',
-    tags: parsed.tags,
-    attachments: []
-  };
-  const savedState = await window.todoAPI.saveTask(payload);
-  applyPersistedState(savedState);
-  closeQuickAddOverlay();
-  renderApp();
 }
 
 function moveSelectionBy(offset) {
@@ -2970,29 +2752,6 @@ function bindStaticEvents() {
     await restoreAppearanceDefaults();
   });
 
-  elements.quickAddOverlay.addEventListener('mousedown', (event) => {
-    if (event.target === elements.quickAddOverlay) {
-      closeQuickAddOverlay();
-    }
-  });
-
-  elements.quickAddInput.addEventListener('input', () => {
-    state.drafts.quickAddLine = elements.quickAddInput.value;
-    renderQuickAddPreview();
-  });
-
-  elements.quickAddInput.addEventListener('keydown', async (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      closeQuickAddOverlay();
-      return;
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      await submitQuickAdd();
-    }
-  });
-
   elements.taskList.addEventListener('click', async (event) => {
     const actionButton = event.target.closest('button[data-task-action]');
     if (actionButton) {
@@ -3111,7 +2870,6 @@ function bindGlobalEvents() {
     if (
       state.ui.selectedTaskIds.size &&
       !target.closest('.task-card') &&
-      !target.closest('.quick-add-card') &&
       !target.closest('.dialog-card')
     ) {
       clearSelection();
@@ -3126,14 +2884,6 @@ function bindGlobalEvents() {
   }
 
   window.addEventListener('keydown', async (event) => {
-    if (state.ui.quickAddOpen) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeQuickAddOverlay();
-      }
-      return;
-    }
-
     if (state.ui.openSelectId) {
       if (event.key === 'Escape') {
         event.preventDefault();
