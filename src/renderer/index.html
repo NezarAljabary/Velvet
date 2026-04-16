@@ -392,11 +392,6 @@
                     <span class="sidebar-note">Animation speed and amount</span>
                     <div id="motionOptions" class="choice-grid"></div>
                   </section>
-                  <section class="setting-block">
-                    <h5>Sidebar width</h5>
-                    <span class="sidebar-note">Layout preference</span>
-                    <div id="sidebarWidthOptions" class="choice-grid"></div>
-                  </section>
                 </section>
 
                 <section class="settings-card settings-card--quickadd app-panel">
@@ -405,6 +400,11 @@
                     <span class="sidebar-note">Global command trigger</span>
                   </div>
                   <section class="setting-block">
+                    <h5>Sidebar width</h5>
+                    <span class="sidebar-note">Layout preference</span>
+                    <div id="sidebarWidthOptions" class="choice-grid"></div>
+                  </section>
+                  <section class="setting-block">
                     <h5>Quick Add shortcut</h5>
                     <span class="sidebar-note">Keyboard shortcut registration</span>
                     <div id="quickAddShortcutOptions" class="choice-grid"></div>
@@ -412,7 +412,7 @@
                   </section>
                 </section>
 
-                <section class="settings-card settings-card--wide settings-card--desktop app-panel">
+                <section class="settings-card settings-card--desktop app-panel">
                   <div class="section-heading">
                     <h4>Desktop behavior</h4>
                     <span class="sidebar-note">Tray controls and local storage</span>
@@ -449,18 +449,6 @@
           </section>
         </section>
       </main>
-    </div>
-
-    <div id="quickAddOverlay" class="quick-add-overlay hidden" aria-hidden="true">
-      <div class="quick-add-card app-modal" role="dialog" aria-modal="true" aria-labelledby="quickAddTitle">
-        <div class="quick-add-header">
-          <p class="eyebrow">Quick Add</p>
-          <h3 id="quickAddTitle">Create task from one line</h3>
-          <p class="sidebar-note">Try: <code>Finish report tomorrow 5pm high</code></p>
-        </div>
-        <input id="quickAddInput" class="app-input quick-add-input" type="text" placeholder="Type task details and press Enter..." />
-        <div id="quickAddPreview" class="quick-add-preview"></div>
-      </div>
     </div>
 
     <div id="floatingLayerRoot" class="floating-layer-root"></div>

@@ -1,11 +1,11 @@
 {
   "name": "velvet",
   "productName": "Velvet",
-  "version": "1.3.6",
+  "version": "1.4.0",
   "description": "Velvet is a polished desktop task manager built with Electron.",
   "main": "src/main/main.js",
-  "author": "OpenAI Codex",
-  "license": "MIT",
+  "author": "Vibe Laboratory",
+  "license": "UNLICENSED",
   "scripts": {
     "prepare-icons": "node scripts/sync-icon.js",
     "dev": "npm run prepare-icons && electron .",

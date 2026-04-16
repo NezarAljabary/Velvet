@@ -30,7 +30,7 @@ const QUICK_ADD_SHORTCUT_ACCELERATOR_MAP = Object.freeze({
   'Alt+Space': 'Alt+Space'
 });
 const DEFAULT_QUICK_ADD_SHORTCUT = 'Ctrl+Alt+V';
-const QUICK_ADD_WINDOW_WIDTH = 760;
+const QUICK_ADD_WINDOW_WIDTH = 780;
 const QUICK_ADD_WINDOW_HEIGHT = 340;
 const PRIORITY_SET = new Set(['low', 'medium', 'high', 'urgent']);
 const WEEKDAY_INDEX = {
@@ -52,7 +52,8 @@ const WEEKDAY_INDEX = {
 
 let mainWindow = null;
 let quickAddWindow = null;
-let quickAddWindowLoaded = false;
+let quickAddWindowReady = false;
+let quickAddRendererReady = false;
 let pendingQuickAddShow = false;
 let appStore = null;
 let tray = null;
@@ -472,7 +473,8 @@ function createQuickAddWindow() {
   }
 
   const iconPath = process.platform === 'win32' ? resolveIconPath() : undefined;
-  quickAddWindowLoaded = false;
+  quickAddWindowReady = false;
+  quickAddRendererReady = false;
   pendingQuickAddShow = false;
   quickAddWindow = new BrowserWindow({
     width: QUICK_ADD_WINDOW_WIDTH,
@@ -483,12 +485,13 @@ function createQuickAddWindow() {
     fullscreenable: false,
     show: false,
     frame: false,
+    roundedCorners: true,
     skipTaskbar: true,
     alwaysOnTop: true,
     title: `${APP_NAME} Quick Add`,
     backgroundColor: '#00000000',
     transparent: true,
-    hasShadow: true,
+    hasShadow: false,
     ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
@@ -513,17 +516,19 @@ function createQuickAddWindow() {
   });
   quickAddWindow.on('closed', () => {
     quickAddWindow = null;
-    quickAddWindowLoaded = false;
+    quickAddWindowReady = false;
+    quickAddRendererReady = false;
     pendingQuickAddShow = false;
   });
+  quickAddWindow.once('ready-to-show', () => {
+    quickAddWindowReady = true;
+    if (quickAddWindow && pendingQuickAddShow && quickAddRendererReady) {
+      revealQuickAddWindow(quickAddWindow);
+    }
+  });
   quickAddWindow.webContents.on('did-finish-load', () => {
-    quickAddWindowLoaded = true;
     emitToWindow(quickAddWindow, 'quick-add:context', buildQuickAddContext());
     emitToWindow(quickAddWindow, 'quick-add:shortcut-status', getShortcutRegistrationStatus());
-    if (quickAddWindow && pendingQuickAddShow) {
-      revealQuickAddWindow(quickAddWindow);
-      return;
-    }
     if (quickAddWindow && quickAddWindow.isVisible()) {
       emitToWindow(quickAddWindow, 'quick-add:focus', null);
     }
@@ -539,7 +544,7 @@ function showQuickAddWindow() {
     return;
   }
   pendingQuickAddShow = true;
-  if (quickAddWindowLoaded) {
+  if (quickAddWindowReady && quickAddRendererReady) {
     revealQuickAddWindow(win);
   }
 }
@@ -899,6 +904,18 @@ function registerIpcHandlers() {
     hideQuickAddWindow();
     return { ok: true };
   });
+  ipcMain.on('quickAdd:renderer-ready', (event) => {
+    if (!quickAddWindow || quickAddWindow.isDestroyed()) {
+      return;
+    }
+    if (event.sender !== quickAddWindow.webContents) {
+      return;
+    }
+    quickAddRendererReady = true;
+    if (pendingQuickAddShow && quickAddWindowReady) {
+      revealQuickAddWindow(quickAddWindow);
+    }
+  });
 
   ipcMain.handle('tasks:save', (event, payload) => {
     const state = readState();
@@ -1107,6 +1124,7 @@ app.whenReady().then(() => {
   const initialState = readState();
   registerIpcHandlers();
   createWindow();
+  createQuickAddWindow();
   syncRuntimeWithSettings(initialState.settings, { allowFallback: true });
   startReminderTimer();
 

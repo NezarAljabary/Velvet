@@ -4,13 +4,13 @@ const state = {
   categories: [],
   settings: {},
   previewTimer: null,
-  previewRequestId: 0
+  previewToken: 0
 };
 
 const elements = {
-  quickAddInput: document.getElementById('quickAddInput'),
-  quickAddPreview: document.getElementById('quickAddPreview'),
-  quickAddStatus: document.getElementById('quickAddStatus')
+  input: document.getElementById('qaInput'),
+  preview: document.getElementById('qaPreview'),
+  status: document.getElementById('qaStatus')
 };
 
 function escapeHtml(value) {
@@ -22,17 +22,7 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-function setStatus(text, tone = '') {
-  elements.quickAddStatus.textContent = text;
-  elements.quickAddStatus.classList.remove('quick-add-status-ok', 'quick-add-status-error');
-  if (tone === 'ok') {
-    elements.quickAddStatus.classList.add('quick-add-status-ok');
-  } else if (tone === 'error') {
-    elements.quickAddStatus.classList.add('quick-add-status-error');
-  }
-}
-
-function applyThemeFromSettings(settings = {}) {
+function applyTheme(settings = {}) {
   document.documentElement.dataset.theme = settings.themeMode || 'dark';
   document.documentElement.dataset.accent = settings.accent || 'violet';
   document.documentElement.dataset.surface = settings.surface || 'glass';
@@ -43,102 +33,122 @@ function applyThemeFromSettings(settings = {}) {
   document.documentElement.dataset.motion = settings.motion || 'normal';
 }
 
+function setStatus(text, tone = '') {
+  elements.status.textContent = text;
+  elements.status.classList.remove('is-ok', 'is-error');
+  if (tone === 'ok') {
+    elements.status.classList.add('is-ok');
+  } else if (tone === 'error') {
+    elements.status.classList.add('is-error');
+  }
+}
+
 function getCategoryName(categoryId) {
   return state.categories.find((category) => category.id === categoryId)?.name || '';
 }
 
 function renderPreview() {
-  if (!state.line.trim()) {
-    elements.quickAddPreview.innerHTML = '<span class="chip tag">Type a task and press Enter</span>';
+  const line = state.line.trim();
+  if (!line) {
+    elements.preview.innerHTML = '<span class="qa-chip qa-chip--empty">Type a task and press Enter</span>';
     setStatus('Enter to save | Esc to close');
     return;
   }
 
   if (!state.parsed || !state.parsed.title) {
-    elements.quickAddPreview.innerHTML = '<span class="chip overdue">Could not parse title yet</span>';
-    setStatus('Keep typing. Velvet will parse title/date/priority/category when possible.');
+    elements.preview.innerHTML = '<span class="qa-chip qa-chip--error">Parsing task details…</span>';
+    setStatus('Keep typing. Velvet will detect date, priority, category, and tags.');
     return;
   }
 
   const chips = [];
-  chips.push(`<span class="chip status-normal">${escapeHtml(state.parsed.title)}</span>`);
-  chips.push(`<span class="chip priority-${escapeHtml(state.parsed.priority || 'medium')}">${escapeHtml((state.parsed.priority || 'medium').toUpperCase())}</span>`);
+  chips.push(`<span class="qa-chip qa-chip--title">${escapeHtml(state.parsed.title)}</span>`);
+  chips.push(`<span class="qa-chip qa-chip--priority">${escapeHtml((state.parsed.priority || 'medium').toUpperCase())}</span>`);
 
   if (state.parsed.dueDate) {
-    const dueText = state.parsed.dueTime
-      ? `${state.parsed.dueDate} ${state.parsed.dueTime}`
-      : state.parsed.dueDate;
-    chips.push(`<span class="chip tag">Due ${escapeHtml(dueText)}</span>`);
+    const dueText = state.parsed.dueTime ? `${state.parsed.dueDate} ${state.parsed.dueTime}` : state.parsed.dueDate;
+    chips.push(`<span class="qa-chip qa-chip--meta">Due ${escapeHtml(dueText)}</span>`);
   }
 
   const categoryName = getCategoryName(state.parsed.categoryId);
   if (categoryName) {
-    chips.push(`<span class="chip tag">Category: ${escapeHtml(categoryName)}</span>`);
+    chips.push(`<span class="qa-chip qa-chip--meta">Category: ${escapeHtml(categoryName)}</span>`);
   }
 
   if (Array.isArray(state.parsed.tags) && state.parsed.tags.length) {
-    chips.push(...state.parsed.tags.map((tag) => `<span class="chip tag">#${escapeHtml(tag)}</span>`));
+    chips.push(...state.parsed.tags.map((tag) => `<span class="qa-chip qa-chip--tag">#${escapeHtml(tag)}</span>`));
   }
 
-  elements.quickAddPreview.innerHTML = chips.join('');
+  elements.preview.innerHTML = chips.join('');
   setStatus('Press Enter to create task');
 }
 
 async function requestPreview() {
-  const requestId = ++state.previewRequestId;
+  const token = ++state.previewToken;
   const line = state.line.trim();
   if (!line) {
     state.parsed = null;
     renderPreview();
     return;
   }
-  const response = await window.todoAPI.previewQuickAddLine(line);
-  if (requestId !== state.previewRequestId) {
-    return;
+
+  try {
+    const response = await window.todoAPI.previewQuickAddLine(line);
+    if (token !== state.previewToken) {
+      return;
+    }
+    state.parsed = response?.parsed || null;
+    renderPreview();
+  } catch (error) {
+    if (token !== state.previewToken) {
+      return;
+    }
+    state.parsed = null;
+    elements.preview.innerHTML = '<span class="qa-chip qa-chip--error">Preview unavailable</span>';
+    setStatus('Preview failed. You can still press Enter to create.', 'error');
   }
-  state.parsed = response?.parsed || null;
-  renderPreview();
 }
 
-function queuePreview() {
+function schedulePreview() {
   if (state.previewTimer) {
     clearTimeout(state.previewTimer);
   }
   state.previewTimer = setTimeout(() => {
     state.previewTimer = null;
-    requestPreview().catch(() => {
-      setStatus('Preview unavailable right now.', 'error');
-    });
-  }, 120);
+    requestPreview();
+  }, 110);
 }
 
 function focusInput(selectAll = true) {
   requestAnimationFrame(() => {
-    elements.quickAddInput.focus();
+    elements.input.focus();
     if (selectAll) {
-      elements.quickAddInput.select();
+      elements.input.select();
     }
   });
 }
 
 async function createTask() {
-  if (!state.line.trim()) {
+  const line = state.line.trim();
+  if (!line) {
     setStatus('Type a task title first.', 'error');
     return;
   }
-  const result = await window.todoAPI.createQuickAddTask(state.line);
+
+  const result = await window.todoAPI.createQuickAddTask(line);
   if (!result?.ok) {
     setStatus(result?.error || 'Failed to create task.', 'error');
     return;
   }
+
   setStatus('Task created.', 'ok');
   state.line = '';
   state.parsed = null;
-  elements.quickAddInput.value = '';
+  elements.input.value = '';
   renderPreview();
   setTimeout(() => {
     window.todoAPI.closeQuickAddWindow();
-  }, 140);
+  }, 120);
 }
 
 function applyContext(context) {
@@ -146,18 +156,18 @@ function applyContext(context) {
     return;
   }
   state.categories = Array.isArray(context.categories) ? context.categories : [];
-  state.settings = context.settings || {};
-  applyThemeFromSettings(state.settings);
+  state.settings = context.settings && typeof context.settings === 'object' ? context.settings : {};
+  applyTheme(state.settings);
   renderPreview();
 }
 
 function bindEvents() {
-  elements.quickAddInput.addEventListener('input', () => {
-    state.line = elements.quickAddInput.value;
-    queuePreview();
+  elements.input.addEventListener('input', () => {
+    state.line = elements.input.value;
+    schedulePreview();
   });
 
-  elements.quickAddInput.addEventListener('keydown', async (event) => {
+  elements.input.addEventListener('keydown', async (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       await window.todoAPI.closeQuickAddWindow();
@@ -170,14 +180,8 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', async (event) => {
-    if (event.key === 'Escape' && document.activeElement !== elements.quickAddInput) {
+    if (event.key === 'Escape' && document.activeElement !== elements.input) {
       event.preventDefault();
-      await window.todoAPI.closeQuickAddWindow();
-    }
-  });
-
-  document.body.addEventListener('mousedown', async (event) => {
-    if (event.target === document.body || event.target === document.documentElement) {
       await window.todoAPI.closeQuickAddWindow();
     }
   });
@@ -185,28 +189,32 @@ function bindEvents() {
   window.todoAPI.onQuickAddFocus(() => {
     focusInput(true);
   });
+
   window.todoAPI.onQuickAddClose(() => {
     state.line = '';
     state.parsed = null;
-    elements.quickAddInput.value = '';
+    elements.input.value = '';
     renderPreview();
   });
+
   window.todoAPI.onQuickAddContext((context) => {
     applyContext(context);
-    queuePreview();
+    schedulePreview();
   });
 }
 
 async function init() {
   const context = await window.todoAPI.getQuickAddContext();
   applyContext(context);
-  renderPreview();
   bindEvents();
-  focusInput(true);
+  renderPreview();
+  requestAnimationFrame(() => {
+    window.todoAPI.signalQuickAddReady?.();
+    focusInput(true);
+  });
 }
 
 init().catch(() => {
+  elements.preview.innerHTML = '<span class="qa-chip qa-chip--error">Quick Add failed to initialize</span>';
   setStatus('Quick Add failed to initialize.', 'error');
 });
-
-
