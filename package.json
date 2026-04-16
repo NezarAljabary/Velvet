@@ -1,0 +1,74 @@
+{
+  "name": "velvet",
+  "productName": "Velvet",
+  "version": "1.3.6",
+  "description": "Velvet is a polished desktop task manager built with Electron.",
+  "main": "src/main/main.js",
+  "author": "OpenAI Codex",
+  "license": "MIT",
+  "scripts": {
+    "prepare-icons": "node scripts/sync-icon.js",
+    "dev": "npm run prepare-icons && electron .",
+    "build": "npm run prepare-icons && electron-builder --dir && npm run patch-win-exe",
+    "package": "npm run build",
+    "patch-win-exe": "node scripts/patch-win-exe.js",
+    "make-installer": "npm run build && electron-builder --win nsis --prepackaged out/win-unpacked --config.win.signAndEditExecutable=false"
+  },
+  "build": {
+    "appId": "com.velvet.desktop",
+    "productName": "Velvet",
+    "directories": {
+      "output": "out",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "!out{,/**/*}",
+      "!README.md",
+      "!forge.config.js"
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "electronLanguages": [
+      "en-US"
+    ],
+    "npmRebuild": false,
+    "extraResources": [
+      {
+        "from": "build/icons/velvet_tasks_icon.ico",
+        "to": "icons/velvet_tasks_icon.ico"
+      }
+    ],
+    "win": {
+      "icon": "build/icons/velvet_tasks_icon.ico",
+      "executableName": "Velvet",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Velvet",
+      "installerIcon": "build/icons/velvet_tasks_icon.ico",
+      "uninstallerIcon": "build/icons/velvet_tasks_icon.ico",
+      "installerHeaderIcon": "build/icons/velvet_tasks_icon.ico",
+      "artifactName": "VelvetSetup-${version}.${ext}",
+      "uninstallDisplayName": "Velvet"
+    }
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "rcedit": "^5.0.2"
+  }
+}

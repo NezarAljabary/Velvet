@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:; script-src 'self';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Velvet</title>
+    <link rel="stylesheet" href="./design-system.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar app-panel">
+        <div class="brand-card">
+          <div class="brand-mark" aria-hidden="true">V</div>
+          <div>
+            <p class="eyebrow">Desktop task planner</p>
+            <h1>Velvet</h1>
+            <p class="brand-subtitle">Modern local planning with categories, reminders, and polished keyboard-first workflows.</p>
+          </div>
+        </div>
+
+        <section class="sidebar-card app-card">
+          <label class="field app-field">
+            <span>Quick find</span>
+            <div class="search-row">
+              <input id="searchInput" class="app-input" type="search" placeholder="Search tasks, notes, tags..." />
+              <button id="filterButton" class="app-button is-icon is-ghost filter-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="filterPopover" title="Filters">
+                <span class="icon-glyph" aria-hidden="true">&#9776;</span>
+                <span id="filterActiveBadge" class="filter-badge hidden">0</span>
+              </button>
+            </div>
+          </label>
+
+          <section id="filterPopover" class="app-popover filter-popover hidden" role="menu" aria-label="Task filters">
+            <div class="filter-header">
+              <h3>Filters</h3>
+              <button id="clearFiltersButton" class="app-button is-ghost is-compact" type="button">Clear</button>
+            </div>
+
+            <label class="field app-field">
+              <span>Status</span>
+              <div class="select-wrap">
+                <select id="statusFilter" class="app-select">
+                  <option value="all">All statuses</option>
+                  <option value="normal">Normal</option>
+                  <option value="delayed">Delayed</option>
+                  <option value="done">Done</option>
+                </select>
+              </div>
+            </label>
+
+            <label class="field app-field">
+              <span>Priority</span>
+              <div class="select-wrap">
+                <select id="priorityFilter" class="app-select">
+                  <option value="all">All priorities</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+            </label>
+
+            <label class="field app-field">
+              <span>Category</span>
+              <div class="select-wrap">
+                <select id="categoryFilter" class="app-select">
+                  <option value="all">All categories</option>
+                </select>
+              </div>
+            </label>
+
+            <label class="field app-field">
+              <span>Sort</span>
+              <div class="select-wrap">
+                <select id="sortSelect" class="app-select">
+                  <option value="manual">Manual order</option>
+                  <option value="due-asc">Due date</option>
+                  <option value="priority-desc">Priority</option>
+                  <option value="status-asc">Status</option>
+                  <option value="created-desc">Newest created</option>
+                  <option value="created-asc">Oldest created</option>
+                  <option value="updated-desc">Recently updated</option>
+                  <option value="title-asc">Title</option>
+                </select>
+              </div>
+            </label>
+          </section>
+        </section>
+
+        <nav class="view-nav" id="viewNav" aria-label="Primary views"></nav>
+
+        <section id="pulseCard" class="sidebar-card app-card pulse-card">
+          <div class="section-heading">
+            <div>
+              <h2>Pulse</h2>
+              <span class="sidebar-note">Live overview</span>
+            </div>
+            <button
+              id="togglePulseButton"
+              class="app-button is-ghost is-compact pulse-toggle-button"
+              type="button"
+              aria-expanded="true"
+              aria-controls="statsGrid"
+            >
+              Collapse
+            </button>
+          </div>
+          <div class="stats-grid" id="statsGrid"></div>
+        </section>
+      </aside>
+
+      <main class="main-content">
+        <header class="hero app-panel">
+          <div>
+            <p class="eyebrow" id="viewEyebrow">Smart view</p>
+            <h2 id="viewTitle">Today</h2>
+            <p class="hero-copy" id="viewSubtitle"></p>
+          </div>
+
+          <div class="hero-actions">
+            <button id="newTaskButton" class="app-button is-primary" type="button">New task</button>
+            <button id="openQuickAddButton" class="app-button is-ghost" type="button">Quick add</button>
+            <button id="toggleComposerButton" class="app-button is-ghost" type="button">Hide composer</button>
+            <button id="secondaryActionButton" class="app-button is-ghost hidden" type="button"></button>
+            <div class="shortcut-hint">
+              <span>Shortcuts</span>
+              <p><kbd>Ctrl</kbd> + <kbd>N</kbd> new task</p>
+              <p><kbd id="quickAddShortcutHint">Ctrl+Alt+V</kbd> quick add</p>
+              <p><kbd>Delete</kbd> remove selected</p>
+            </div>
+          </div>
+        </header>
+
+        <section id="workspaceGrid" class="workspace-grid">
+          <section class="composer-card app-card" id="composerSection">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Task composer</p>
+                <h3 id="composerTitle">Create task</h3>
+              </div>
+              <div class="inline-actions">
+                <button id="clearDraftButton" class="app-button is-ghost is-compact" type="button">Clear</button>
+                <button id="cancelEditButton" class="app-button is-ghost is-compact hidden" type="button">Cancel edit</button>
+              </div>
+            </div>
+
+            <form id="taskForm" class="task-form">
+              <label class="field app-field">
+                <span>Title</span>
+                <input id="titleInput" class="app-input" name="title" type="text" maxlength="120" placeholder="Plan launch checklist" />
+              </label>
+
+              <label class="field app-field">
+                <span>Notes</span>
+                <textarea id="notesInput" class="app-textarea" name="notes" rows="5" maxlength="3000" placeholder="Add context, links, or next steps..."></textarea>
+              </label>
+
+              <div class="field-row">
+                <label class="field app-field">
+                  <span>Due date</span>
+                  <input id="dueDateInput" class="app-input app-date-input" name="dueDate" type="date" />
+                </label>
+
+                <label class="field app-field">
+                  <span>Due time</span>
+                  <input id="dueTimeInput" class="app-input app-time-input" name="dueTime" type="time" />
+                </label>
+              </div>
+
+              <div class="field-row">
+                <label class="field app-field">
+                  <span>Priority</span>
+                  <div class="select-wrap">
+                    <select id="priorityInput" class="app-select" name="priority">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+                </label>
+
+                <label class="field app-field">
+                  <span>Status</span>
+                  <div class="select-wrap">
+                    <select id="statusInput" class="app-select" name="status">
+                      <option value="normal">Normal</option>
+                      <option value="delayed">Delayed</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
+                </label>
+              </div>
+
+              <div class="field-row">
+                <label class="field app-field">
+                  <span>Category</span>
+                  <div class="select-wrap">
+                    <select id="categoryInput" class="app-select" name="categoryId">
+                      <option value="">Uncategorized</option>
+                    </select>
+                  </div>
+                </label>
+
+                <div class="field app-field">
+                  <span>Reminder</span>
+                  <label class="switch-toggle">
+                    <input id="reminderEnabledInput" name="reminderEnabled" type="checkbox" />
+                    <span class="switch-ui" aria-hidden="true"></span>
+                    <span id="reminderStatusText">Disabled</span>
+                  </label>
+                </div>
+              </div>
+
+              <label class="field app-field hidden" id="reminderAtField">
+                <span>Reminder date & time</span>
+                <input id="reminderAtInput" class="app-input app-datetime-input" name="reminderAt" type="datetime-local" />
+              </label>
+
+              <label class="field app-field">
+                <span>Tags</span>
+                <input id="tagsInput" class="app-input" name="tags" type="text" maxlength="200" placeholder="ops, design, admin" />
+              </label>
+
+              <section class="attachment-composer app-panel">
+                <div class="section-heading">
+                  <h4>Task attachments</h4>
+                  <span class="sidebar-note">Links, images, files</span>
+                </div>
+                <div class="attachment-input-row">
+                  <input id="attachmentUrlInput" class="app-input" type="url" maxlength="2048" placeholder="https://example.com/spec" />
+                  <button id="addUrlAttachmentButton" class="app-button is-ghost is-compact" type="button">Add link</button>
+                  <button id="addFileAttachmentButton" class="app-button is-ghost is-compact" type="button">Add file</button>
+                </div>
+                <div id="draftAttachmentList" class="attachment-list"></div>
+              </section>
+
+              <div class="form-footer">
+                <p class="form-status" id="draftStatus">Ready for a new task.</p>
+                <div class="form-actions">
+                  <button id="saveTaskButton" class="app-button is-primary" type="submit">Save task</button>
+                  <button id="duplicateTaskButton" class="app-button is-ghost hidden" type="button">Duplicate</button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <section class="content-card app-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Workspace</p>
+                <h3 id="contentTitle">Tasks</h3>
+              </div>
+              <div class="inline-actions">
+                <span class="app-badge is-accent" id="contentCount">0 items</span>
+              </div>
+            </div>
+
+            <section id="tasksView" class="content-view">
+              <div id="taskList" class="task-list"></div>
+              <div id="emptyState" class="app-empty-state hidden">
+                <div class="empty-art" aria-hidden="true"></div>
+                <h4 id="emptyTitle">Nothing here yet</h4>
+                <p id="emptyMessage"></p>
+              </div>
+            </section>
+
+            <section id="categoriesView" class="content-view hidden">
+              <div class="categories-layout">
+                <section class="category-manager app-panel">
+                  <div class="section-heading">
+                    <div>
+                      <h4>Category studio</h4>
+                      <p class="sidebar-note">Create clean folders for related tasks and references.</p>
+                    </div>
+                  </div>
+
+                  <form id="categoryForm" class="category-form">
+                    <input id="categoryNameInput" class="app-input" type="text" maxlength="48" placeholder="Category name" />
+                    <input id="categoryColorInput" class="app-input category-color-input" type="color" value="#7da6ff" title="Category color" />
+                    <button id="saveCategoryButton" class="app-button is-primary is-compact" type="submit">Save</button>
+                    <button id="cancelCategoryEditButton" class="app-button is-ghost is-compact hidden" type="button">Cancel</button>
+                  </form>
+
+                  <div class="category-attachment-panel">
+                    <div class="section-heading">
+                      <h5>Category references</h5>
+                      <span class="sidebar-note">Attach docs, links, and files per category.</span>
+                    </div>
+                    <div class="attachment-input-row category-attachment-input-row">
+                      <input id="categoryAttachmentUrlInput" class="app-input" type="url" maxlength="2048" placeholder="https://reference-link" />
+                      <div class="attachment-actions">
+                        <button id="addCategoryUrlAttachmentButton" class="app-button is-ghost is-compact" type="button">Add link</button>
+                        <button id="addCategoryFileAttachmentButton" class="app-button is-ghost is-compact" type="button">Add file</button>
+                      </div>
+                    </div>
+                    <div id="categoryAttachmentDraftList" class="attachment-list"></div>
+                  </div>
+                </section>
+
+                <section class="category-overview app-panel">
+                  <div class="section-heading">
+                    <div>
+                      <h4>Categories</h4>
+                      <p class="sidebar-note">Readable cards with quick actions and active workload.</p>
+                    </div>
+                  </div>
+                  <div id="categoryList" class="category-list"></div>
+                </section>
+
+                <section class="category-groups-panel app-panel">
+                  <div class="section-heading">
+                    <div>
+                      <h4>Tasks by category</h4>
+                      <p class="sidebar-note">Live grouped workspace including uncategorized tasks.</p>
+                    </div>
+                  </div>
+                  <div id="categoryGroups" class="category-groups"></div>
+                </section>
+              </div>
+            </section>
+
+            <section id="settingsView" class="content-view hidden">
+              <div class="settings-layout">
+                <section class="settings-card settings-card--wide settings-card--appearance app-panel">
+                  <div class="section-heading">
+                    <h4>Appearance</h4>
+                    <span class="sidebar-note">Theme, accent, surface, and spacing</span>
+                  </div>
+                  <div class="settings-options-grid">
+                    <section class="setting-block">
+                      <h5>Theme mode</h5>
+                      <span class="sidebar-note">Applied instantly</span>
+                      <div id="themeModeOptions" class="choice-grid"></div>
+                    </section>
+
+                    <section class="setting-block">
+                      <h5>Accent color</h5>
+                      <span class="sidebar-note">Primary highlight system</span>
+                      <div id="accentOptions" class="choice-grid color-grid"></div>
+                    </section>
+
+                    <section class="setting-block">
+                      <h5>Surface style</h5>
+                      <span class="sidebar-note">Glass, solid, or elevated</span>
+                      <div id="surfaceOptions" class="choice-grid"></div>
+                    </section>
+
+                    <section class="setting-block">
+                      <h5>Spacing density</h5>
+                      <span class="sidebar-note">Comfortable or compact</span>
+                      <div id="densityOptions" class="choice-grid"></div>
+                    </section>
+                  </div>
+                </section>
+
+                <section class="settings-card settings-card--typography app-panel">
+                  <div class="section-heading">
+                    <h4>Typography and shape</h4>
+                    <span class="sidebar-note">Readable text and geometry</span>
+                  </div>
+                  <section class="setting-block">
+                    <h5>Typography</h5>
+                    <span class="sidebar-note">Premium readable font stacks</span>
+                    <div id="fontOptions" class="choice-grid"></div>
+                  </section>
+                  <section class="setting-block">
+                    <h5>Corner radius</h5>
+                    <span class="sidebar-note">Global roundness level</span>
+                    <div id="radiusOptions" class="choice-grid"></div>
+                  </section>
+                </section>
+
+                <section class="settings-card settings-card--depth app-panel">
+                  <div class="section-heading">
+                    <h4>Depth and layout</h4>
+                    <span class="sidebar-note">Hierarchy and movement profile</span>
+                  </div>
+                  <section class="setting-block">
+                    <h5>Shadow intensity</h5>
+                    <span class="sidebar-note">Panel depth and contrast</span>
+                    <div id="shadowOptions" class="choice-grid"></div>
+                  </section>
+                  <section class="setting-block">
+                    <h5>Motion intensity</h5>
+                    <span class="sidebar-note">Animation speed and amount</span>
+                    <div id="motionOptions" class="choice-grid"></div>
+                  </section>
+                  <section class="setting-block">
+                    <h5>Sidebar width</h5>
+                    <span class="sidebar-note">Layout preference</span>
+                    <div id="sidebarWidthOptions" class="choice-grid"></div>
+                  </section>
+                </section>
+
+                <section class="settings-card settings-card--quickadd app-panel">
+                  <div class="section-heading">
+                    <h4>Quick Add</h4>
+                    <span class="sidebar-note">Global command trigger</span>
+                  </div>
+                  <section class="setting-block">
+                    <h5>Quick Add shortcut</h5>
+                    <span class="sidebar-note">Keyboard shortcut registration</span>
+                    <div id="quickAddShortcutOptions" class="choice-grid"></div>
+                    <p id="quickAddShortcutStatus" class="sidebar-note"></p>
+                  </section>
+                </section>
+
+                <section class="settings-card settings-card--wide settings-card--desktop app-panel">
+                  <div class="section-heading">
+                    <h4>Desktop behavior</h4>
+                    <span class="sidebar-note">Tray controls and local storage</span>
+                  </div>
+                  <div class="settings-desktop-grid">
+                    <section class="setting-block">
+                      <h5>Tray behavior</h5>
+                      <span class="sidebar-note">Optional minimize and close to tray</span>
+                      <label class="switch-toggle setting-toggle">
+                        <input id="trayCloseToggle" type="checkbox" />
+                        <span class="switch-ui" aria-hidden="true"></span>
+                        <span>Close window to tray</span>
+                      </label>
+                      <label class="switch-toggle setting-toggle">
+                        <input id="trayMinimizeToggle" type="checkbox" />
+                        <span class="switch-ui" aria-hidden="true"></span>
+                        <span>Minimize window to tray</span>
+                      </label>
+                    </section>
+
+                    <section class="setting-block app-info">
+                      <h5>App storage</h5>
+                      <span class="sidebar-note">Local-first and install-safe</span>
+                      <p id="storagePath"></p>
+                      <div class="inline-actions">
+                        <button id="openStorageButton" class="app-button is-ghost is-compact" type="button">Open storage folder</button>
+                        <button id="restoreThemeDefaultsButton" class="app-button is-danger is-compact" type="button">Restore appearance defaults</button>
+                      </div>
+                    </section>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="quickAddOverlay" class="quick-add-overlay hidden" aria-hidden="true">
+      <div class="quick-add-card app-modal" role="dialog" aria-modal="true" aria-labelledby="quickAddTitle">
+        <div class="quick-add-header">
+          <p class="eyebrow">Quick Add</p>
+          <h3 id="quickAddTitle">Create task from one line</h3>
+          <p class="sidebar-note">Try: <code>Finish report tomorrow 5pm high</code></p>
+        </div>
+        <input id="quickAddInput" class="app-input quick-add-input" type="text" placeholder="Type task details and press Enter..." />
+        <div id="quickAddPreview" class="quick-add-preview"></div>
+      </div>
+    </div>
+
+    <div id="floatingLayerRoot" class="floating-layer-root"></div>
+    <div id="dialogRoot"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
+
