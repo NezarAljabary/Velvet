@@ -1,0 +1,21 @@
+node_modules/
+out/
+out-*/
+dist/
+release/
+release-latest/
+out clean/
+out verify/
+out verifty 1-3/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
