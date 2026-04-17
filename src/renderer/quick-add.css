@@ -28,6 +28,7 @@ body {
   place-items: center;
   width: 100%;
   height: 100%;
+  overflow: hidden;
   padding: 0;
   color: var(--ds-text);
   font-family: var(--ds-font-ui);
@@ -47,7 +48,6 @@ body {
   gap: 12px;
   padding: 20px 22px;
   overflow: hidden;
-  overflow: clip;
   animation: none;
 }
 

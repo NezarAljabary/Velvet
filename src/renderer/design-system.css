@@ -406,6 +406,9 @@ button:disabled {
   box-shadow: var(--ds-shadow-panel);
   backdrop-filter: blur(var(--ds-backdrop-blur));
   border-radius: var(--ds-radius-lg);
+  background-clip: padding-box;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 .app-card {
@@ -539,6 +542,7 @@ button:disabled {
   padding: 8px;
   max-height: 280px;
   overflow: auto;
+  background-clip: padding-box;
   opacity: 0;
   visibility: hidden;
   transform: translateY(calc(var(--ds-motion-distance) * -0.4));
@@ -738,6 +742,8 @@ button:disabled {
   box-shadow: var(--ds-shadow-floating);
   backdrop-filter: blur(var(--ds-floating-backdrop-blur));
   padding: var(--ds-space-4);
+  background-clip: padding-box;
+  isolation: isolate;
   animation: ds-popover-in var(--ds-motion-base) ease;
   z-index: 220;
 }
@@ -748,6 +754,8 @@ button:disabled {
   background: var(--ds-floating-surface);
   box-shadow: var(--ds-shadow-modal);
   backdrop-filter: blur(var(--ds-floating-backdrop-blur));
+  background-clip: padding-box;
+  isolation: isolate;
   animation: ds-modal-in var(--ds-motion-base) ease;
 }
 
