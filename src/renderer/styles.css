@@ -303,7 +303,7 @@ kbd {
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(356px, 468px) minmax(0, 1fr);
+  grid-template-columns: minmax(372px, 490px) minmax(0, 1fr);
   gap: var(--ds-space-4);
   min-height: 0;
   height: 100%;
@@ -351,13 +351,20 @@ kbd {
 }
 
 .task-form {
+  --composer-focus-safe: 6px;
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-3);
   margin-top: var(--ds-space-3);
   min-height: 0;
   overflow: auto;
-  padding-right: 3px;
+  padding:
+    4px
+    calc(var(--composer-focus-safe) + 2px)
+    6px
+    var(--composer-focus-safe);
+  scroll-padding: var(--composer-focus-safe);
+  scrollbar-gutter: stable;
 }
 
 .field-row {
@@ -686,6 +693,10 @@ kbd {
 .task-title-block h4 {
   font-size: 1.02rem;
   line-height: 1.35;
+}
+
+.task-title-row {
+  margin-bottom: 4px;
 }
 
 .task-card[data-status='done'] .task-title-block h4 {
@@ -1287,7 +1298,7 @@ kbd {
 
 @media (max-width: 1540px) {
   .workspace-grid {
-    grid-template-columns: minmax(336px, 412px) minmax(0, 1fr);
+    grid-template-columns: minmax(348px, 424px) minmax(0, 1fr);
   }
 
   .categories-layout {
