@@ -144,7 +144,7 @@ body {
 
 .qa-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 10px;
 }
@@ -164,22 +164,6 @@ body {
   color: rgb(var(--ds-danger-rgb));
 }
 
-.qa-shortcuts {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--ds-muted);
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-
-.qa-shortcuts kbd {
-  border-radius: 8px;
-  padding: 2px 7px;
-  font-size: 0.72rem;
-}
-
 @media (max-width: 760px) {
   .qa-card {
     width: min(calc(100% - 2px), 100vw - 2px);
@@ -191,9 +175,5 @@ body {
   .qa-footer {
     flex-wrap: wrap;
     align-items: flex-start;
-  }
-
-  .qa-shortcuts {
-    white-space: normal;
   }
 }
