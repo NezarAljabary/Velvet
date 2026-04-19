@@ -82,6 +82,46 @@ function resolveIconPath() {
   return getIconPathCandidates().find((candidate) => fs.existsSync(candidate));
 }
 
+// --- Window state persistence ---
+const WINDOW_STATE_FILE = 'window-state.json';
+
+function getWindowStatePath() {
+  return path.join(app.getPath('userData'), WINDOW_STATE_FILE);
+}
+
+function loadWindowState() {
+  try {
+    const raw = fs.readFileSync(getWindowStatePath(), 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed;
+  } catch {
+    // no saved state or corrupt file — use defaults
+  }
+  return null;
+}
+
+function saveWindowState(bounds, isMaximized) {
+  try {
+    fs.writeFileSync(getWindowStatePath(), JSON.stringify({ ...bounds, isMaximized: !!isMaximized }), 'utf8');
+  } catch {
+    // ignore write errors
+  }
+}
+
+function isWindowOnScreen(bounds) {
+  const displays = screen.getAllDisplays();
+  return displays.some((display) => {
+    const da = display.workArea;
+    return (
+      bounds.x < da.x + da.width &&
+      bounds.x + bounds.width > da.x &&
+      bounds.y < da.y + da.height &&
+      bounds.y + bounds.height > da.y
+    );
+  });
+}
+// --- End window state persistence ---
+
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
@@ -699,9 +739,37 @@ function syncTrayMode(settings) {
 
 function createWindow() {
   const iconPath = process.platform === 'win32' ? resolveIconPath() : undefined;
+
+  const DEFAULT_WIDTH = 1280;
+  const DEFAULT_HEIGHT = 820;
+  const savedState = loadWindowState();
+
+  let winWidth = DEFAULT_WIDTH;
+  let winHeight = DEFAULT_HEIGHT;
+  let winX;
+  let winY;
+  let restoreMaximized = false;
+
+  if (savedState) {
+    const w = savedState.width;
+    const h = savedState.height;
+    if (typeof w === 'number' && typeof h === 'number' && w >= 960 && h >= 620) {
+      const candidate = { x: savedState.x ?? 0, y: savedState.y ?? 0, width: w, height: h };
+      if (isWindowOnScreen(candidate)) {
+        winWidth = w;
+        winHeight = h;
+        winX = savedState.x;
+        winY = savedState.y;
+        restoreMaximized = !!savedState.isMaximized;
+      }
+    }
+  }
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: winWidth,
+    height: winHeight,
+    ...(winX !== undefined ? { x: winX } : {}),
+    ...(winY !== undefined ? { y: winY } : {}),
     minWidth: 960,
     minHeight: 620,
     backgroundColor: '#0b1220',
@@ -716,7 +784,33 @@ function createWindow() {
     }
   });
 
+  // Persist window bounds whenever the user resizes or moves the window
+  let saveBoundsTimer = null;
+  const scheduleSaveBounds = () => {
+    if (saveBoundsTimer) clearTimeout(saveBoundsTimer);
+    saveBoundsTimer = setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isMaximized() && !mainWindow.isMinimized()) {
+        saveWindowState(mainWindow.getBounds(), false);
+      }
+    }, 400);
+  };
+  mainWindow.on('resize', scheduleSaveBounds);
+  mainWindow.on('move', scheduleSaveBounds);
+
   mainWindow.on('close', (event) => {
+    // Always persist the latest state before the window disappears
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMaximized()) {
+        // Keep previous normal bounds but flag as maximized
+        const prev = loadWindowState();
+        saveWindowState(
+          { x: prev?.x, y: prev?.y, width: prev?.width ?? DEFAULT_WIDTH, height: prev?.height ?? DEFAULT_HEIGHT },
+          true
+        );
+      } else if (!mainWindow.isMinimized()) {
+        saveWindowState(mainWindow.getBounds(), false);
+      }
+    }
     if (!isQuitting && shouldTrayHandle('close')) {
       event.preventDefault();
       createTray();
@@ -737,6 +831,9 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
+    if (restoreMaximized) {
+      mainWindow.maximize();
+    }
     mainWindow.show();
     emitToWindow(mainWindow, 'quick-add:shortcut-status', getShortcutRegistrationStatus());
   });
