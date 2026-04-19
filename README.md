@@ -114,16 +114,6 @@ Update in `package.json`:
 - `build.nsis.shortcutName`
 - `build.nsis.uninstallDisplayName`
 
-### Version
-
-Update `version` in `package.json`.
-
-### Icon
-
-1. Replace root icon file:
-   - `velvet_tasks_icon.ico`
-2. Run any script (`dev`, `build`, `package`, `make-installer`):
-   - `scripts/sync-icon.js` copies it automatically to packaging paths.
 
 Windows icon targets covered:
 
