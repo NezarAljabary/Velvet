@@ -1,13 +1,13 @@
 :root {
-  --sidebar-width: 332px;
+  --sidebar-width: clamp(260px, 24vw, 332px);
 }
 
 :root[data-sidebar-width='narrow'] {
-  --sidebar-width: 286px;
+  --sidebar-width: clamp(232px, 20vw, 286px);
 }
 
 :root[data-sidebar-width='wide'] {
-  --sidebar-width: 384px;
+  --sidebar-width: clamp(288px, 27vw, 384px);
 }
 
 h1,
@@ -36,6 +36,8 @@ p {
   padding: var(--ds-space-4);
   position: relative;
   isolation: isolate;
+  border-radius: 0;
+  border: none;
   background: color-mix(in srgb, var(--ds-bg-top) 68%, transparent);
   overflow: hidden;
 }
@@ -1323,7 +1325,7 @@ kbd {
 
 @media (max-width: 1540px) {
   .workspace-grid {
-    grid-template-columns: minmax(348px, 424px) minmax(0, 1fr);
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
   }
 
   .categories-layout {
@@ -1331,7 +1333,25 @@ kbd {
   }
 }
 
-@media (max-width: 1420px) {
+@media (max-width: 1360px) {
+  .workspace-grid {
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: var(--ds-space-3);
+  }
+
+  .app-shell {
+    padding: var(--ds-space-3);
+    gap: var(--ds-space-3);
+  }
+
+  .sidebar,
+  .composer-card,
+  .content-card {
+    padding: var(--ds-space-3);
+  }
+}
+
+@media (max-width: 1080px) {
   body {
     overflow: auto;
   }
@@ -1409,7 +1429,7 @@ kbd {
   }
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 960px) {
   .workspace-grid {
     grid-template-columns: 1fr;
   }

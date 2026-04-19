@@ -1215,10 +1215,22 @@ function renderHeader() {
   elements.viewTitle.textContent = currentView.label;
   elements.viewSubtitle.textContent = currentView.subtitle;
   elements.contentTitle.textContent = currentView.label;
-  const shortcutLabel =
-    state.ui.shortcutStatus?.active ||
+  const shortcutStatus = state.ui.shortcutStatus || {};
+  const requestedShortcut =
+    shortcutStatus.requested ||
     state.data.settings.quickAddShortcut ||
     DEFAULT_SETTINGS.quickAddShortcut;
+  const fellBack =
+    shortcutStatus.registered &&
+    shortcutStatus.active &&
+    shortcutStatus.active !== requestedShortcut;
+  const unavailable = shortcutStatus.registered === false;
+  let shortcutLabel = requestedShortcut;
+  if (unavailable) {
+    shortcutLabel = `${requestedShortcut} (unavailable)`;
+  } else if (fellBack) {
+    shortcutLabel = `${shortcutStatus.active} (fallback)`;
+  }
   elements.quickAddShortcutHint.textContent = shortcutLabel;
 
   const filteredTasks = getFilteredTasks();
@@ -1254,7 +1266,7 @@ function renderAttachmentItem(attachment, options = {}) {
   const subtitle =
     attachment.type === 'url'
       ? escapeHtml(attachment.url || '')
-      : `${escapeHtml(attachment.path || '')}${attachment.size ? ` &bull; ${escapeHtml(formatFileSize(attachment.size))}` : ''}`;
+      : `${escapeHtml(attachment.path || '')}${attachment.size ? ` • ${escapeHtml(formatFileSize(attachment.size))}` : ''}`;
   let visualMarkup = `<span class="attachment-icon">${escapeHtml(getAttachmentTypeLabel(attachment))}</span>`;
 
   if (attachment.type === 'image' && attachment.path) {
@@ -1464,7 +1476,7 @@ function renderTaskCard(task) {
   const category = task.categoryId ? getCategoryById(task.categoryId) : null;
   const overdue = isTaskOverdue(task);
   const reminderLabel = task.reminderEnabled ? formatDateTimeLocal(task.reminderAt) : '';
-  const dueText = task.dueDate ? `${formatDate(task.dueDate)}${task.dueTime ? ` &bull; ${formatTime(task.dueTime)}` : ''}` : 'No due date';
+  const dueText = task.dueDate ? `${formatDate(task.dueDate)}${task.dueTime ? ` • ${formatTime(task.dueTime)}` : ''}` : 'No due date';
   const tags = Array.isArray(task.tags) ? task.tags : [];
   const draggable = state.filters.sort === 'manual' ? 'true' : 'false';
 
@@ -1673,9 +1685,29 @@ function renderSettingsView() {
   elements.trayMinimizeToggle.checked = Boolean(state.data.settings.trayOnMinimize);
   elements.storagePath.textContent = state.meta.userDataPath || 'Unknown';
   if (elements.quickAddShortcutStatus) {
-    elements.quickAddShortcutStatus.textContent = '';
+    const status = state.ui.shortcutStatus || {};
+    const requested =
+      status.requested ||
+      state.data.settings.quickAddShortcut ||
+      DEFAULT_SETTINGS.quickAddShortcut;
     elements.quickAddShortcutStatus.classList.remove('status-ok', 'status-error');
-    elements.quickAddShortcutStatus.classList.add('hidden');
+    if (status.registered === false) {
+      elements.quickAddShortcutStatus.textContent =
+        status.error || `Shortcut "${requested}" is unavailable on this system.`;
+      elements.quickAddShortcutStatus.classList.add('status-error');
+      elements.quickAddShortcutStatus.classList.remove('hidden');
+    } else if (status.registered && status.active && status.active !== requested) {
+      elements.quickAddShortcutStatus.textContent = `"${requested}" could not be registered. Using "${status.active}" instead.`;
+      elements.quickAddShortcutStatus.classList.add('status-error');
+      elements.quickAddShortcutStatus.classList.remove('hidden');
+    } else if (status.registered && status.active) {
+      elements.quickAddShortcutStatus.textContent = `Active shortcut: ${status.active}`;
+      elements.quickAddShortcutStatus.classList.add('status-ok');
+      elements.quickAddShortcutStatus.classList.remove('hidden');
+    } else {
+      elements.quickAddShortcutStatus.textContent = '';
+      elements.quickAddShortcutStatus.classList.add('hidden');
+    }
   }
 }
 
@@ -2004,7 +2036,16 @@ function openDialog(config) {
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        event.stopPropagation();
         close(false);
+      } else if (event.key === 'Enter') {
+        const target = event.target;
+        if (target instanceof HTMLElement && (target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        close(true);
       }
     };
 

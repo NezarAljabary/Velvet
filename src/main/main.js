@@ -343,24 +343,12 @@ function registerGlobalQuickAddShortcut(shortcutSetting, options = {}) {
     registered = false;
   }
 
-  if (!registered && allowFallback && normalizedSetting !== DEFAULT_QUICK_ADD_SHORTCUT) {
-    const fallbackAccelerator = getShortcutAcceleratorFromSetting(DEFAULT_QUICK_ADD_SHORTCUT);
-    try {
-      const fallbackRegistered = globalShortcut.register(fallbackAccelerator, () => {
-        showQuickAddWindow();
-      });
-      if (fallbackRegistered) {
-        registered = true;
-        activeSetting = DEFAULT_QUICK_ADD_SHORTCUT;
-        currentGlobalQuickAddAccelerator = fallbackAccelerator;
-        currentGlobalQuickAddShortcutSetting = DEFAULT_QUICK_ADD_SHORTCUT;
-      }
-    } catch (fallbackError) {
-      if (!error) {
-        error = fallbackError?.message || 'Default shortcut registration failed.';
-      }
-    }
+  if (!registered && !error) {
+    error = `Shortcut "${normalizedSetting}" could not be registered. It may be in use by another application.`;
   }
+  // Fallback intentionally disabled: silently binding a different shortcut than
+  // the user selected is confusing. Surface the error instead.
+  void allowFallback;
 
   if (registered && !currentGlobalQuickAddAccelerator) {
     currentGlobalQuickAddAccelerator = getShortcutAcceleratorFromSetting(activeSetting);
@@ -712,10 +700,10 @@ function syncTrayMode(settings) {
 function createWindow() {
   const iconPath = process.platform === 'win32' ? resolveIconPath() : undefined;
   mainWindow = new BrowserWindow({
-    width: 1500,
-    height: 960,
-    minWidth: 1140,
-    minHeight: 760,
+    width: 1280,
+    height: 820,
+    minWidth: 960,
+    minHeight: 620,
     backgroundColor: '#0b1220',
     title: APP_NAME,
     autoHideMenuBar: true,

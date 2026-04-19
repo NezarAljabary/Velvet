@@ -331,6 +331,11 @@ body {
   height: 100%;
 }
 
+html {
+  /* Fluid base font: scales from ~14px on small laptops to ~17px on large/4K displays. */
+  font-size: clamp(14px, 0.62vw + 12px, 17px);
+}
+
 body {
   min-height: 100vh;
   overflow: hidden;
