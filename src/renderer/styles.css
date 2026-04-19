@@ -36,9 +36,16 @@ p {
   padding: var(--ds-space-4);
   position: relative;
   isolation: isolate;
-  border-radius: 0;
+  border-radius: var(--ds-radius-lg);
   border: none;
-  background: color-mix(in srgb, var(--ds-bg-top) 68%, transparent);
+  /* Ambient accent gradients live on the shell so they stay inside the
+     rounded shape. Body uses a solid color so the corner slivers outside
+     the radius read uniformly (no triangular peek-through). */
+  background:
+    radial-gradient(circle at top left, rgba(var(--ds-accent-rgb), 0.22), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(var(--ds-status-done-rgb), 0.14), transparent 30%),
+    linear-gradient(155deg, var(--ds-bg-base), var(--ds-bg-top) 45%, var(--ds-bg-bottom));
+  background-clip: padding-box;
   overflow: hidden;
 }
 
@@ -263,6 +270,10 @@ p {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  /* Matches .app-shell corner so the right column doesn't render as a
+     square region inside a rounded shell. Layout-only wrapper — no
+     background, but clips any descendant with visible overflow. */
+  border-radius: var(--ds-radius-lg);
 }
 
 .hero {
@@ -311,6 +322,7 @@ kbd {
   grid-template-columns: minmax(372px, 490px) minmax(0, 1fr);
   gap: var(--ds-space-4);
   min-height: 0;
+  border-radius: var(--ds-radius-lg);
   height: 100%;
   align-items: stretch;
   overflow: hidden;
@@ -361,6 +373,7 @@ kbd {
   flex-direction: column;
   gap: var(--ds-space-3);
   margin-top: var(--ds-space-3);
+  flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   padding:
@@ -370,6 +383,13 @@ kbd {
     var(--composer-focus-safe);
   scroll-padding: var(--composer-focus-safe);
   scrollbar-gutter: stable;
+}
+
+/* Prevent children from shrinking — otherwise they compress instead of
+   overflowing, which visually clips long sections (e.g. the attachments
+   panel) without triggering the scrollbar to cover them. */
+.task-form > * {
+  flex-shrink: 0;
 }
 
 .field-row {
@@ -1003,6 +1023,10 @@ kbd {
   min-height: 0;
   flex: 1;
   overflow: auto;
+  /* Matches .app-shell / .main-content / .workspace-grid so the settings
+     area blends with the rounded container theme. Uses --ds-radius-lg so
+     it scales with the Compact / Default / Soft radius presets. */
+  border-radius: var(--ds-radius-lg);
   padding: 1px 1px 2px 0;
   align-content: start;
   align-items: start;

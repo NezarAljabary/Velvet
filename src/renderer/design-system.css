@@ -341,10 +341,8 @@ body {
   overflow: hidden;
   font-family: var(--ds-font-ui);
   color: var(--ds-text);
-  background:
-    radial-gradient(circle at top left, rgba(var(--ds-accent-rgb), 0.24), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(var(--ds-status-done-rgb), 0.14), transparent 28%),
-    linear-gradient(155deg, var(--ds-bg-base), var(--ds-bg-top) 45%, var(--ds-bg-bottom));
+  /* Solid base so the area outside the rounded .app-shell reads uniformly. */
+  background: var(--ds-bg-base);
   transition: background var(--ds-motion-slow) ease, color var(--ds-motion-base) ease;
 }
 
