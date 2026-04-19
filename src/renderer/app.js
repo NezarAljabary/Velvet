@@ -1225,13 +1225,22 @@ function renderHeader() {
     shortcutStatus.active &&
     shortcutStatus.active !== requestedShortcut;
   const unavailable = shortcutStatus.registered === false;
-  let shortcutLabel = requestedShortcut;
-  if (unavailable) {
-    shortcutLabel = `${requestedShortcut} (unavailable)`;
-  } else if (fellBack) {
-    shortcutLabel = `${shortcutStatus.active} (fallback)`;
+  // Keep the <kbd> to just the key combo so its width stays stable.
+  // Status (unavailable / fallback) goes in the separate hint-status span.
+  elements.quickAddShortcutHint.textContent = fellBack ? shortcutStatus.active : requestedShortcut;
+  const hintStatus = document.getElementById('quickAddShortcutHintStatus');
+  if (hintStatus) {
+    if (unavailable) {
+      hintStatus.textContent = '(unavailable)';
+      hintStatus.classList.remove('hidden');
+    } else if (fellBack) {
+      hintStatus.textContent = '(fallback)';
+      hintStatus.classList.remove('hidden');
+    } else {
+      hintStatus.textContent = '';
+      hintStatus.classList.add('hidden');
+    }
   }
-  elements.quickAddShortcutHint.textContent = shortcutLabel;
 
   const filteredTasks = getFilteredTasks();
   elements.contentCount.textContent = `${filteredTasks.length} ${filteredTasks.length === 1 ? 'item' : 'items'}`;

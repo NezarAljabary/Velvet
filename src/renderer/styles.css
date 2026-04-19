@@ -210,7 +210,6 @@ p {
 .filter-header,
 .section-heading,
 .card-heading,
-.hero,
 .form-footer,
 .inline-actions,
 .task-card-header,
@@ -279,6 +278,14 @@ p {
 .hero {
   border-radius: var(--ds-radius-lg);
   padding: 22px 24px;
+  /* 3-column grid: title | buttons | shortcut-hint.
+     Shortcut-hint is a direct child in its own column so its width
+     never affects the buttons, eliminating layout shift when the
+     shortcut label changes (e.g. Ctrl+Alt+V → Ctrl+Shift+K). */
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--ds-space-3);
 }
 
 .hero h2 {
@@ -307,6 +314,14 @@ p {
   text-align: right;
   font-size: 0.82rem;
   color: var(--ds-muted);
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.shortcut-hint-status {
+  font-size: 0.72rem;
+  color: var(--ds-status-overdue, #e57373);
+  font-style: italic;
 }
 
 kbd {
@@ -1449,13 +1464,14 @@ kbd {
   }
 
   .hero {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
     align-items: flex-start;
   }
 
   .hero-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: flex-start;
   }
 
