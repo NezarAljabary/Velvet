@@ -557,7 +557,9 @@ kbd {
 }
 
 .form-footer {
-  margin-top: auto;
+  /* Do NOT use margin-top: auto here — .task-form is overflow:auto and an
+     auto margin inside a scrollable flex column consumes free space and
+     clips content above the footer (e.g., the attachments section). */
   padding-top: var(--ds-space-2);
 }
 
