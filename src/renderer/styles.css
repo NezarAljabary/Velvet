@@ -478,16 +478,22 @@ kbd {
   background-clip: padding-box;
   padding: 9px 11px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--ds-space-2);
 }
 
 .attachment-meta {
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+}
+
+.attachment-thumb,
+.attachment-icon {
+  flex-shrink: 0;
 }
 
 .attachment-thumb {
@@ -514,6 +520,7 @@ kbd {
 
 .attachment-name {
   min-width: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -521,18 +528,20 @@ kbd {
 
 .attachment-name strong,
 .attachment-name span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .attachment-name span {
   color: var(--ds-muted);
   font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .attachment-actions {
   display: inline-flex;
+  flex-shrink: 0;
   gap: var(--ds-space-2);
 }
 
