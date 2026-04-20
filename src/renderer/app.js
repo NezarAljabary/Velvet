@@ -1252,15 +1252,9 @@ function renderHeader() {
     return;
   }
 
-  if (!['settings', 'categories', 'completed'].includes(state.ui.currentView) && filteredTasks.length) {
-    elements.secondaryActionButton.textContent = 'Mark visible done';
-    elements.secondaryActionButton.dataset.secondaryAction = 'bulk-done';
-    elements.secondaryActionButton.classList.remove('hidden');
-  } else {
-    elements.secondaryActionButton.classList.add('hidden');
-    elements.secondaryActionButton.textContent = '';
-    elements.secondaryActionButton.dataset.secondaryAction = '';
-  }
+  elements.secondaryActionButton.classList.add('hidden');
+  elements.secondaryActionButton.textContent = '';
+  elements.secondaryActionButton.dataset.secondaryAction = '';
 }
 
 function getAttachmentTypeLabel(attachment) {
@@ -2099,6 +2093,22 @@ async function showNotice(title, message) {
   });
 }
 
+// Wraps an IPC call so a failed bridge call surfaces a user-visible notice
+// instead of an unhandled promise rejection. Returns `null` on failure so
+// callers can early-return without touching undefined state.
+async function safeIpc(operation, actionLabel) {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error(`IPC operation failed (${actionLabel}):`, error);
+    await showNotice(
+      'Something went wrong',
+      `Could not ${actionLabel}. ${error && error.message ? error.message : 'Please try again.'}`
+    );
+    return null;
+  }
+}
+
 function closeFilterPopover() {
   if (!state.ui.filterPopoverOpen) {
     return;
@@ -2181,7 +2191,8 @@ async function persistTaskDraft() {
     return;
   }
 
-  const savedState = await window.todoAPI.saveTask(payload);
+  const savedState = await safeIpc(() => window.todoAPI.saveTask(payload), 'save this task');
+  if (!savedState) return;
   const editedTaskId = state.ui.editingTaskId;
   applyPersistedState(savedState);
   resetTaskDraft();
@@ -2207,7 +2218,8 @@ async function deleteTask(taskId) {
   if (!confirmed) {
     return;
   }
-  const savedState = await window.todoAPI.deleteTask(taskId);
+  const savedState = await safeIpc(() => window.todoAPI.deleteTask(taskId), 'delete this task');
+  if (!savedState) return;
   applyPersistedState(savedState);
   renderApp();
 }
@@ -2226,7 +2238,11 @@ async function deleteSelectedTasks() {
   if (!confirmed) {
     return;
   }
-  const savedState = await window.todoAPI.deleteManyTasks([...state.ui.selectedTaskIds]);
+  const savedState = await safeIpc(
+    () => window.todoAPI.deleteManyTasks([...state.ui.selectedTaskIds]),
+    'delete the selected tasks'
+  );
+  if (!savedState) return;
   applyPersistedState(savedState);
   clearSelection(false);
   renderApp();
@@ -2242,7 +2258,8 @@ async function updateTaskStatus(taskId, status) {
     ...task,
     status
   };
-  const savedState = await window.todoAPI.saveTask(payload);
+  const savedState = await safeIpc(() => window.todoAPI.saveTask(payload), 'update the task status');
+  if (!savedState) return;
   applyPersistedState(savedState);
   renderApp();
 }
@@ -2262,23 +2279,12 @@ async function clearCompletedTasks() {
   if (!confirmed) {
     return;
   }
-  const savedState = await window.todoAPI.clearDoneTasks();
+  const savedState = await safeIpc(() => window.todoAPI.clearDoneTasks(), 'clear completed tasks');
+  if (!savedState) return;
   applyPersistedState(savedState);
   renderApp();
 }
 
-async function markVisibleTasksDone() {
-  const visibleTaskIds = getFilteredTasks()
-    .filter((task) => task.status !== 'done')
-    .map((task) => task.id);
-  if (!visibleTaskIds.length) {
-    return;
-  }
-  const savedState = await window.todoAPI.bulkUpdateTaskStatus(visibleTaskIds, 'done');
-  applyPersistedState(savedState);
-  clearSelection(false);
-  renderApp();
-}
 
 async function addDraftTaskUrlAttachment() {
   const attachment = buildUrlAttachment(elements.attachmentUrlInput.value);
@@ -2293,7 +2299,7 @@ async function addDraftTaskUrlAttachment() {
 }
 
 async function addDraftTaskFileAttachment() {
-  const attachment = await window.todoAPI.pickAttachmentFile();
+  const attachment = await safeIpc(() => window.todoAPI.pickAttachmentFile(), 'pick a file');
   if (!attachment) {
     return;
   }
@@ -2314,7 +2320,7 @@ async function addDraftCategoryUrlAttachment() {
 }
 
 async function addDraftCategoryFileAttachment() {
-  const attachment = await window.todoAPI.pickAttachmentFile();
+  const attachment = await safeIpc(() => window.todoAPI.pickAttachmentFile(), 'pick a file');
   if (!attachment) {
     return;
   }
@@ -2326,7 +2332,8 @@ async function openAttachment(attachment) {
   if (!attachment) {
     return;
   }
-  const result = await window.todoAPI.openAttachment(attachment);
+  const result = await safeIpc(() => window.todoAPI.openAttachment(attachment), 'open the attachment');
+  if (result === null) return; // safeIpc already surfaced the error
   if (!result?.ok) {
     await showNotice('Could not open attachment', result?.error || 'Unknown attachment error.');
   }
@@ -2339,7 +2346,8 @@ async function saveCategoryDraft() {
     elements.categoryNameInput.focus();
     return;
   }
-  const savedState = await window.todoAPI.saveCategory(payload);
+  const savedState = await safeIpc(() => window.todoAPI.saveCategory(payload), 'save this category');
+  if (!savedState) return;
   applyPersistedState(savedState);
   resetCategoryDraft();
   renderApp();
@@ -2361,7 +2369,8 @@ async function deleteCategory(categoryId) {
     return;
   }
 
-  const savedState = await window.todoAPI.deleteCategory(categoryId);
+  const savedState = await safeIpc(() => window.todoAPI.deleteCategory(categoryId), 'delete this category');
+  if (!savedState) return;
   applyPersistedState(savedState);
   if (state.filters.categoryId === categoryId) {
     state.filters.categoryId = 'all';
@@ -2373,7 +2382,8 @@ async function deleteCategory(categoryId) {
 }
 
 async function updateSettings(partialSettings) {
-  const savedState = await window.todoAPI.updateSettings(partialSettings);
+  const savedState = await safeIpc(() => window.todoAPI.updateSettings(partialSettings), 'update settings');
+  if (!savedState) return;
   applyPersistedState(savedState);
   renderApp();
 }
@@ -2475,7 +2485,8 @@ async function reorderVisibleTasks(draggedTaskId, targetTaskId, position) {
     return id;
   });
 
-  const savedState = await window.todoAPI.reorderTasks(finalIds);
+  const savedState = await safeIpc(() => window.todoAPI.reorderTasks(finalIds), 'reorder tasks');
+  if (!savedState) return;
   applyPersistedState(savedState);
   renderApp();
 }
@@ -2507,10 +2518,6 @@ async function handleTaskAction(taskId, action) {
 }
 
 async function handleSecondaryAction(action) {
-  if (action === 'bulk-done') {
-    await markVisibleTasksDone();
-    return;
-  }
   if (action === 'clear-completed') {
     await clearCompletedTasks();
   }
@@ -2607,7 +2614,8 @@ function bindStaticEvents() {
   });
 
   elements.openQuickAddButton.addEventListener('click', async () => {
-    const result = await window.todoAPI.openQuickAddWindow();
+    const result = await safeIpc(() => window.todoAPI.openQuickAddWindow(), 'open Quick Add');
+    if (result === null) return; // safeIpc already surfaced the error
     if (!result?.ok) {
       await showNotice('Quick Add unavailable', result?.error || 'Could not open Quick Add window.');
     }
@@ -2792,7 +2800,8 @@ function bindStaticEvents() {
   });
 
   elements.openStorageButton.addEventListener('click', async () => {
-    const result = await window.todoAPI.openStorageFolder();
+    const result = await safeIpc(() => window.todoAPI.openStorageFolder(), 'open the storage folder');
+    if (result === null) return; // safeIpc already surfaced the error
     if (!result?.ok) {
       await showNotice('Could not open storage folder', result?.error || 'Unknown error.');
     }
@@ -3080,8 +3089,13 @@ async function init() {
   removeStateChangedListener = window.todoAPI.onStateChanged(onExternalStateChanged);
   removeShortcutStatusListener = window.todoAPI.onShortcutStatus(onShortcutStatus);
 
-  const latestStatus = await window.todoAPI.getShortcutStatus();
-  onShortcutStatus(latestStatus);
+  try {
+    const latestStatus = await window.todoAPI.getShortcutStatus();
+    onShortcutStatus(latestStatus);
+  } catch (error) {
+    // Non-critical: the shortcut-status broadcast will still fire when it's ready.
+    console.error('Failed to fetch initial shortcut status:', error);
+  }
 
   renderApp();
 }

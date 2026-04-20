@@ -135,7 +135,13 @@ async function createTask() {
     return;
   }
 
-  const result = await window.todoAPI.createQuickAddTask(line);
+  let result;
+  try {
+    result = await window.todoAPI.createQuickAddTask(line);
+  } catch (error) {
+    setStatus(error?.message || 'Failed to create task.', 'error');
+    return;
+  }
   if (!result?.ok) {
     setStatus(result?.error || 'Failed to create task.', 'error');
     return;

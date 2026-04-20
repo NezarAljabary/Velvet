@@ -801,12 +801,17 @@ function createWindow() {
     // Always persist the latest state before the window disappears
     if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMaximized()) {
-        // Keep previous normal bounds but flag as maximized
-        const prev = loadWindowState();
-        saveWindowState(
-          { x: prev?.x, y: prev?.y, width: prev?.width ?? DEFAULT_WIDTH, height: prev?.height ?? DEFAULT_HEIGHT },
-          true
-        );
+        // Keep previous normal bounds but flag as maximized.
+        // If no saved state exists yet (first-ever maximized close), fall back to default size
+        // and let Electron pick the position rather than spreading `undefined`.
+        const prev = loadWindowState() || {};
+        const preservedBounds = {
+          width: typeof prev.width === 'number' ? prev.width : DEFAULT_WIDTH,
+          height: typeof prev.height === 'number' ? prev.height : DEFAULT_HEIGHT
+        };
+        if (typeof prev.x === 'number') preservedBounds.x = prev.x;
+        if (typeof prev.y === 'number') preservedBounds.y = prev.y;
+        saveWindowState(preservedBounds, true);
       } else if (!mainWindow.isMinimized()) {
         saveWindowState(mainWindow.getBounds(), false);
       }
@@ -1068,27 +1073,6 @@ function registerIpcHandlers() {
     return writeState(state);
   });
 
-  ipcMain.handle('tasks:bulk-status', (event, payload) => {
-    const state = readState();
-    const taskIds = new Set(Array.isArray(payload?.taskIds) ? payload.taskIds : []);
-    const targetStatus = payload?.status;
-    const nextState = { ...state, tasks: [] };
-
-    nextState.tasks = state.tasks.map((task) => {
-      if (!taskIds.has(task.id)) {
-        return task;
-      }
-      return buildTaskPayload(
-        {
-          ...task,
-          status: targetStatus
-        },
-        state
-      );
-    });
-
-    return writeState(nextState);
-  });
 
   ipcMain.handle('categories:save', (event, payload) => {
     const state = readState();

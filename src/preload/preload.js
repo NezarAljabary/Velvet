@@ -7,7 +7,6 @@ contextBridge.exposeInMainWorld('todoAPI', {
   saveTask: (task) => ipcRenderer.invoke('tasks:save', task),
   deleteTask: (taskId) => ipcRenderer.invoke('tasks:delete', taskId),
   deleteManyTasks: (taskIds) => ipcRenderer.invoke('tasks:delete-many', taskIds),
-  bulkUpdateTaskStatus: (taskIds, status) => ipcRenderer.invoke('tasks:bulk-status', { taskIds, status }),
   reorderTasks: (orderedTaskIds) => ipcRenderer.invoke('tasks:reorder', orderedTaskIds),
   clearDoneTasks: () => ipcRenderer.invoke('tasks:clear-done'),
   saveCategory: (category) => ipcRenderer.invoke('categories:save', category),
