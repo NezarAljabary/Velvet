@@ -753,7 +753,7 @@ function createWindow() {
   if (savedState) {
     const w = savedState.width;
     const h = savedState.height;
-    if (typeof w === 'number' && typeof h === 'number' && w >= 960 && h >= 620) {
+    if (typeof w === 'number' && typeof h === 'number' && w >= 1100 && h >= 660) {
       const candidate = { x: savedState.x ?? 0, y: savedState.y ?? 0, width: w, height: h };
       if (isWindowOnScreen(candidate)) {
         winWidth = w;
@@ -770,8 +770,8 @@ function createWindow() {
     height: winHeight,
     ...(winX !== undefined ? { x: winX } : {}),
     ...(winY !== undefined ? { y: winY } : {}),
-    minWidth: 960,
-    minHeight: 620,
+    minWidth: 1100,
+    minHeight: 660,
     backgroundColor: '#0b1220',
     title: APP_NAME,
     autoHideMenuBar: true,
