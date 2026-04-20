@@ -1192,6 +1192,9 @@ function registerIpcHandlers() {
 
 app.whenReady().then(() => {
   app.setName(APP_NAME);
+  // Remove the default Electron menu so its accelerators (e.g. Ctrl+N → New Window)
+  // don't shadow keyboard shortcuts handled by the renderer.
+  Menu.setApplicationMenu(null);
 
   if (process.platform === 'win32') {
     app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
