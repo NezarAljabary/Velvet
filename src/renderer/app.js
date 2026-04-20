@@ -167,7 +167,8 @@ const state = {
   meta: {
     version: '',
     userDataPath: '',
-    appName: 'Velvet'
+    appName: 'Velvet',
+    openAtLogin: false
   },
   ui: {
     currentView: 'today',
@@ -276,6 +277,7 @@ const elements = {
   sidebarWidthOptions: document.getElementById('sidebarWidthOptions'),
   quickAddShortcutOptions: document.getElementById('quickAddShortcutOptions'),
   quickAddShortcutStatus: document.getElementById('quickAddShortcutStatus'),
+  startWithWindowsToggle: document.getElementById('startWithWindowsToggle'),
   trayCloseToggle: document.getElementById('trayCloseToggle'),
   trayMinimizeToggle: document.getElementById('trayMinimizeToggle'),
   storagePath: document.getElementById('storagePath'),
@@ -1684,6 +1686,7 @@ function renderSettingsView() {
     'quickAddShortcut'
   );
 
+  elements.startWithWindowsToggle.checked = Boolean(state.meta.openAtLogin);
   elements.trayCloseToggle.checked = Boolean(state.data.settings.trayOnClose);
   elements.trayMinimizeToggle.checked = Boolean(state.data.settings.trayOnMinimize);
   elements.storagePath.textContent = state.meta.userDataPath || 'Unknown';
@@ -2791,6 +2794,20 @@ function bindStaticEvents() {
     await updateSettings({ [key]: value });
   });
 
+  elements.startWithWindowsToggle.addEventListener('change', async () => {
+    const result = await safeIpc(
+      () => window.todoAPI.setStartupSetting(elements.startWithWindowsToggle.checked),
+      'update startup setting'
+    );
+    if (result === null) {
+      // Revert toggle if the IPC call failed
+      elements.startWithWindowsToggle.checked = state.meta.openAtLogin;
+      return;
+    }
+    state.meta.openAtLogin = Boolean(result.openAtLogin);
+    elements.startWithWindowsToggle.checked = state.meta.openAtLogin;
+  });
+
   elements.trayCloseToggle.addEventListener('change', async () => {
     await updateSettings({ trayOnClose: elements.trayCloseToggle.checked });
   });
@@ -3054,7 +3071,8 @@ async function bootstrapApp() {
   state.meta = {
     version: payload.meta?.version || '',
     userDataPath: payload.meta?.userDataPath || '',
-    appName: payload.meta?.appName || 'Velvet'
+    appName: payload.meta?.appName || 'Velvet',
+    openAtLogin: Boolean(payload.meta?.openAtLogin)
   };
   onShortcutStatus(payload.meta?.shortcutStatus);
 }

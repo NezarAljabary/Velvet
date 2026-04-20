@@ -967,9 +967,19 @@ function registerIpcHandlers() {
         version: app.getVersion(),
         userDataPath: app.getPath('userData'),
         appName: APP_NAME,
-        shortcutStatus: getShortcutRegistrationStatus()
+        shortcutStatus: getShortcutRegistrationStatus(),
+        openAtLogin: app.getLoginItemSettings().openAtLogin
       }
     };
+  });
+
+  ipcMain.handle('app:get-startup', () => {
+    return { openAtLogin: app.getLoginItemSettings().openAtLogin };
+  });
+
+  ipcMain.handle('app:set-startup', (event, { openAtLogin }) => {
+    app.setLoginItemSettings({ openAtLogin: Boolean(openAtLogin) });
+    return { openAtLogin: app.getLoginItemSettings().openAtLogin };
   });
 
   ipcMain.handle('app:get-shortcut-status', () => getShortcutRegistrationStatus());

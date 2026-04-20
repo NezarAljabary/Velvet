@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('todoAPI', {
   bootstrap: () => ipcRenderer.invoke('app:bootstrap'),
+  getStartupSetting: () => ipcRenderer.invoke('app:get-startup'),
+  setStartupSetting: (openAtLogin) => ipcRenderer.invoke('app:set-startup', { openAtLogin }),
   getShortcutStatus: () => ipcRenderer.invoke('app:get-shortcut-status'),
   openQuickAddWindow: () => ipcRenderer.invoke('app:open-quick-add'),
   saveTask: (task) => ipcRenderer.invoke('tasks:save', task),
