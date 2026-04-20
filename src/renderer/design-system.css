@@ -128,9 +128,9 @@
 }
 
 :root[data-accent='black'] {
-  --ds-accent-rgb: 32, 36, 43;
-  --ds-accent-strong-rgb: 10, 13, 18;
-  --ds-accent-fg-rgb: 209, 218, 231;
+  --ds-accent-rgb: 88, 96, 116;
+  --ds-accent-strong-rgb: 58, 64, 80;
+  --ds-accent-fg-rgb: 222, 228, 240;
   --ds-focus-rgb: 178, 192, 212;
 }
 
@@ -139,6 +139,12 @@
   --ds-accent-strong-rgb: 20, 24, 32;
   --ds-accent-fg-rgb: 42, 48, 57;
   --ds-focus-rgb: 72, 86, 104;
+}
+
+:root[data-theme='light'][data-accent='black'] .task-action.primary-inline {
+  background: rgba(var(--ds-accent-rgb), 0.10);
+  color: rgb(var(--ds-accent-rgb));
+  border-color: rgba(var(--ds-accent-rgb), 0.55);
 }
 
 :root[data-accent='mono'] {
