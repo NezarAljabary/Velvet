@@ -1,7 +1,7 @@
 {
   "name": "velvet",
   "productName": "Velvet",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Velvet is a polished desktop task manager built with Electron.",
   "main": "src/main/main.js",
   "author": "Vibe Laboratory",
